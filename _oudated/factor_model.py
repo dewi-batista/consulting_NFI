@@ -35,7 +35,7 @@ def compute_bernoulli_param(dict_theta, fluids, marker):
 if __name__ == "__main__":
 
     # load data
-    csv_string = 'Individuals'
+    csv_string = 'individuals'
     data = pd.read_csv(f'preprop_{csv_string}.csv')
 
     # compute dictionary of theta parameters
