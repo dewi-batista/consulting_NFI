@@ -24,7 +24,7 @@ def augment(data, num_aug_samples, max_num_fluids):
     
     # convert to pandas df and save
     augmented_data = pd.concat(augmented_data, ignore_index=True)
-    augmented_data.to_csv("data/augmented_data.csv", index=False)
+    augmented_data.to_csv("data/augmented_mixtures.csv", index=False)
 
 if __name__ == "__main__":
 
