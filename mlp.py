@@ -12,9 +12,9 @@ class MLP_model(nn.Module):
     def __init__(self, input_size, output_size):
         super(MLP_model, self).__init__()
         self.model = nn.Sequential(
-            nn.Linear(input_size, 100),
+            nn.Linear(input_size, 50),
             nn.ReLU(),
-            nn.Linear(100, output_size)
+            nn.Linear(50, output_size)
         )
 
     def forward(self, x):
@@ -48,7 +48,7 @@ def test():
 if __name__ == "__main__":
 
     # load data
-    data = pd.read_csv("data/augmented_mixtures.csv")
+    data = pd.read_csv("data/preproc_mixtures.csv")
 
     # split into inputs (fluids) and outputs (peaks)
     X = data.iloc[:, :6].values
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     model = MLP_model(input_size, output_size)
 
     # some hyperparams
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     num_epochs = 100
 
@@ -90,4 +90,7 @@ if __name__ == "__main__":
     inp = torch.tensor([[1, 1, 0, 0, 0, 0]], dtype=torch.float32)
     with torch.no_grad():
         out = model(inp).numpy()
+
+    print(out >= 150)
     print("Predicted marker peak heights:", out)
+    
