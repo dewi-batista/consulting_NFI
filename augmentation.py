@@ -29,7 +29,8 @@ def augment(data, num_aug_samples, max_num_fluids):
 if __name__ == "__main__":
 
     # load data
-    data = pd.read_csv("data/preprop_individuals.csv")
+    data = pd.read_csv("data/preproc_individuals.csv")
 
     # augment away!
-    augmented_data = augment(data, num_aug_samples=10_000, max_num_fluids=8)
+    augmented_data = augment(data, num_aug_samples=20_000, max_num_fluids=2)
+    

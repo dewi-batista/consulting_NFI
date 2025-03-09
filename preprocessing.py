@@ -1,14 +1,19 @@
 import pandas as pd
 
 # load data
-csv_string = 'individuals'
+csv_string = 'mixtures'
 data = pd.read_csv(f'data/{csv_string}.csv')
 
 # replace fluids column with its one-hot encoding
 fluids_col = data.columns[0]
 
-# this needs to be modified for mixtures.csv
-one_hotted_fluids = pd.get_dummies(data[fluids_col], dtype=int)
+# how we preprocess differs slightly between individuals.csv and mixtures.csv
+if csv_string == 'individuals':
+    one_hotted_fluids = pd.get_dummies(data[fluids_col], dtype=int)
+else:
+    one_hotted_fluids = data[fluids_col].str.get_dummies(sep='+')
+
+# blelele
 data = data.drop(columns=[fluids_col])
 data = pd.concat([one_hotted_fluids, data], axis=1)
 
@@ -19,4 +24,4 @@ data.fillna(0, inplace=True)
 data = data.iloc[:, :-1]
 
 # save data ('%.0f' ensures that everything is int)
-data.to_csv(f'data/preprop_{csv_string}.csv', index=False)#, float_format='%.0f')
+data.to_csv(f'data/preproc_{csv_string}.csv', index=False)#, float_format='%.0f')
