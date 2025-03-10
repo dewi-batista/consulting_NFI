@@ -13,15 +13,6 @@ if csv_string == 'individuals':
 else:
     one_hotted_fluids = data[fluids_col].str.get_dummies(sep='+')
 
-print(data[fluids_col].unique())
-
-# # identify markers with low presence per fluid
-# presence_threshold = 0.1
-markers = data.columns[1:]
-for marker in markers:
-    rows_of_interest = data[data[fluids_col] == marker]
-    print(rows_of_interest)
-
 # replace the single fluids column with the one-hot encodings
 data = data.drop(columns=[fluids_col])
 data = pd.concat([one_hotted_fluids, data], axis=1)
@@ -29,8 +20,37 @@ data = pd.concat([one_hotted_fluids, data], axis=1)
 # replace NaNs with 0s
 data.fillna(0, inplace=True)
 
-# drop replicate values column (subject to change)
-data = data.iloc[:, :-1]
+# FOR MIXTURES ONLY - sanitise! conditioned on each fluid combination
+# get rid of these random values, e.g. conditioned on Semen.fertile and Vaginal.mucosa
+# CD93 is 0 for 61/62 samples and is ~155 for 1/62, stupid anomaly!
+# to combat this, get rid of those values, thresholded at 10%
+if csv_string == 'mixtures':
+
+    # all six fluid combinations present in mixtures.csv
+    fluid_combinations = [
+        ('Semen.fertile', 'Vaginal.mucosa'),
+        ('Saliva', 'Vaginal.mucosa'),
+        ('Blood', 'Nasal.mucosa'),
+        ('Nasal.mucosa', 'Saliva'),
+        ('Blood', 'Vaginal.mucosa'),
+        ('Blood', 'Menstrual.secretion')
+    ]
+    
+    # set starting index of markers in csv
+    marker_start_index = list(data.columns).index("HBB")
+    markers = data.columns[marker_start_index:]
+    for (fluid_1, fluid_2) in fluid_combinations:
+        restricted_data = data[(data[fluid_1] == 1) & (data[fluid_2] == 1)].copy()
+        for col in markers:
+            non_zero_ratio = (restricted_data[col] != 0).sum() / len(restricted_data)
+            # print(non_zero_ratio)
+            if non_zero_ratio <= 0.1:
+                data.loc[(data[fluid_1] == 1) & (data[fluid_2] == 1), col] = 0
+
+# drop all columns right of PRM1
+markers_to_remove_start_index = list(data.columns).index("RPS4Y1")
+markers_to_remove = data.columns[markers_to_remove_start_index:]
+data = data.drop(columns=markers_to_remove)
 
 # save data ('%.0f' ensures that everything is int)
 data.to_csv(f'data/preproc_{csv_string}.csv', index=False)#, float_format='%.0f')
