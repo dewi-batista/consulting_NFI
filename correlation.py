@@ -71,16 +71,17 @@ def greedy_clustering(corr_threshold):
                 used.add(m2)
         print(fluid_1, fluid_2, "clusters:", clusters)
 
-        # plt.figure(figsize=(10, 8))
-        # sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-        # plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
-        # plt.show()
-
+        # plot that correlation matrix boiiii
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
+        plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
+        plt.show()
 
 if __name__ == "__main__":
     
-    corr_threshold = 0.2
+    # corr_threshold = 0.2
     # max_num_correlates = 1
     # greatest_correlates(corr_threshold, max_num_correlates)
 
+    corr_threshold = 0.2
     greedy_clustering(corr_threshold)
