@@ -47,9 +47,10 @@ def greatest_correlates(corr_threshold, max_num_correlates):
         plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
         plt.show()
 
-# ...
-def greedy_clustering(corr_threshold):
+# greedy clustering algorithm
+def get_clusters(corr_threshold):
     
+    clusters_dict = {}
     for (fluid_1, fluid_2) in fluid_combinations:
         restricted_data = data[(data[fluid_1] == 1) & (data[fluid_2] == 1)]
         corr = restricted_data[markers].loc[:, (restricted_data[markers] != 0).any(axis=0)].corr()
@@ -69,19 +70,18 @@ def greedy_clustering(corr_threshold):
                 clusters.append((m1, m2, c))
                 used.add(m1)
                 used.add(m2)
-        print(fluid_1, fluid_2, "clusters:", clusters)
+        # print(fluid_1, fluid_2, "clusters:", clusters)
+        clusters_dict[f"{fluid_1}+{fluid_2}"] = clusters
 
-        # plot that correlation matrix boiiii
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-        plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
-        plt.show()
+    return clusters_dict
+
+# plot that correlation matrix boiiii
+def plot_corr_mat(corr, fluid_1, fluid_2):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
+    plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
+    plt.show()
 
 if __name__ == "__main__":
-    
-    # corr_threshold = 0.2
-    # max_num_correlates = 1
-    # greatest_correlates(corr_threshold, max_num_correlates)
-
     corr_threshold = 0.2
-    greedy_clustering(corr_threshold)
+    print(get_clusters(corr_threshold))
