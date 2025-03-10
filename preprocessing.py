@@ -1,6 +1,6 @@
 import pandas as pd
 
-# load data
+# load data
 csv_string = 'mixtures'
 data = pd.read_csv(f'data/{csv_string}.csv')
 
@@ -13,7 +13,16 @@ if csv_string == 'individuals':
 else:
     one_hotted_fluids = data[fluids_col].str.get_dummies(sep='+')
 
-# blelele
+print(data[fluids_col].unique())
+
+# # identify markers with low presence per fluid
+# presence_threshold = 0.1
+markers = data.columns[1:]
+for marker in markers:
+    rows_of_interest = data[data[fluids_col] == marker]
+    print(rows_of_interest)
+
+# replace the single fluids column with the one-hot encodings
 data = data.drop(columns=[fluids_col])
 data = pd.concat([one_hotted_fluids, data], axis=1)
 
