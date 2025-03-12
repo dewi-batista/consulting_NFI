@@ -34,8 +34,8 @@ for (fluid_1, fluid_2) in fluid_combinations:
     for correlates in clusters[f"{fluid_1}+{fluid_2}"]:
         
         # just the first one for now while I test
-        if correlates[0] != 'MUC4':
-            continue        
+        # if correlates[0] != 'MUC4':
+        #     continue        
         print(correlates)
 
         # assign corelative markers
@@ -55,7 +55,10 @@ for (fluid_1, fluid_2) in fluid_combinations:
         # =========================================================
 
         # 2D hist with 10 bins
-        hist, xedges, yedges = np.histogram2d(restricted_data[marker_1], restricted_data[marker_2], bins=10)
+        hist, xedges, yedges = np.histogram2d(
+            np.log(restricted_data[marker_1] + 1),
+            np.log(restricted_data[marker_2] + 1),
+            bins=20)
         # hist, xedges, yedges = np.histogram2d(scaled_data[marker_1], scaled_data[marker_2], bins=10)
 
         # meshgrid for the bin positions
@@ -90,11 +93,11 @@ for (fluid_1, fluid_2) in fluid_combinations:
         ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average')
 
         # this is for gm
-        ax.plot_surface(X, Y, Z_scaled, alpha=0.5, color='red')
+        # ax.plot_surface(X, Y, Z_scaled, alpha=0.5, color='red')
 
         ax.set_xlabel(f"{marker_1}")
         ax.set_ylabel(f"{marker_2}")
         ax.set_zlabel('Freq.')
         ax.set_title(f"Distribution of {marker_1} against {marker_2} conditioned on {fluid_1}+{fluid_2} (correlation {np.round(correlates[-1], 2)})")
-        # plt.savefig(f"figures/3D_hists/conditioned_on_({fluid_1},{fluid_2})_distribution_of_({marker_1},{marker_2}).pdf")
-        plt.show()
+        plt.savefig(f"figures/3D_hists/conditioned_on_({fluid_1},{fluid_2})_distribution_of_({marker_1},{marker_2}).pdf")
+        # plt.show()
