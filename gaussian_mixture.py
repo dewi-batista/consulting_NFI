@@ -211,7 +211,7 @@ if __name__ == "__main__":
     samples = data.iloc[:, 0].unique()
 
     data_sample = data[data.iloc[:, 0] == samples[idx_sample]]
-    data_sample, test_data_sample = train_test_split(data_sample, test_size=0.2, random_state=42)
+    data_sample, test_data_sample = train_test_split(data_sample, test_size=0.2)#, random_state=42)
 
     true_data = data_sample.loc[:, [markers[idx_marker]]]
     test_true_data = test_data_sample.loc[:, [markers[idx_marker]]]
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     plt.figure(figsize=(6,4))
 
     plt.hist(new_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
-    plt.hist(true_data, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
+    plt.hist(test_true_data, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
     
     plt.plot(x_val, y_all, color="black", label="Sum Contrib")
 
@@ -257,5 +257,5 @@ if __name__ == "__main__":
     plt.xlabel('Value')
     plt.ylabel('Freq.')
     plt.legend()
-    plt.show()
+    # plt.show()
     
