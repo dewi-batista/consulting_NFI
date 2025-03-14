@@ -257,4 +257,5 @@ if __name__ == "__main__":
     plt.xlabel('Value')
     plt.ylabel('Freq.')
     plt.legend()
-    # plt.show()
+    plt.show()
+    
