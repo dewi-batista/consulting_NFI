@@ -6,6 +6,7 @@ import numpy as np
 # For stats things
 from scipy.stats import multivariate_normal, ks_2samp
 from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import train_test_split
 
 # Python quality of life
 from pdb import set_trace
@@ -210,15 +211,20 @@ if __name__ == "__main__":
     samples = data.iloc[:, 0].unique()
 
     data_sample = data[data.iloc[:, 0] == samples[idx_sample]]
+    data_sample, test_data_sample = train_test_split(data_sample, test_size=0.2, random_state=42)
+
     true_data = data_sample.loc[:, [markers[idx_marker]]]
+    test_true_data = test_data_sample.loc[:, [markers[idx_marker]]]
+
+    print(true_data.shape, test_true_data.shape)
 
     # Create new data
     model = gauss_mixture_fit("individuals", 0, 0, do_model_selection=True, covariance_type="diag", plot_=False)
     new_data = data_generator(10**2, model, threshold=150)
-
+    print(new_data.shape)
     # - Test equality of distributions
 
-    result = ks_2samp(true_data.to_numpy().flatten(), new_data)
+    result = ks_2samp(test_true_data.to_numpy().flatten(), new_data)
     print(f"p-value for two-sided KS test: {result.pvalue}")
 
     # - Plot the result 
@@ -251,4 +257,4 @@ if __name__ == "__main__":
     plt.xlabel('Value')
     plt.ylabel('Freq.')
     plt.legend()
-    plt.show()
+    # plt.show()
