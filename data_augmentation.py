@@ -21,9 +21,19 @@ def augment(data, num_aug_samples, max_num_fluids):
         # take each marker's max
         augmented_sample = mixture_of_samples.max().to_frame().T
         augmented_data.append(augmented_sample)
-    
-    # convert to pandas df and save
+
+    # convert to pandas df
     augmented_data = pd.concat(augmented_data, ignore_index=True)
+
+    # drop all columns right of PRM1
+    markers_to_remove_start_index = list(augmented_data.columns).index("RPS4Y1")
+    markers_to_remove = augmented_data.columns[markers_to_remove_start_index:]
+    augmented_data = augmented_data.drop(columns=markers_to_remove)
+
+    # drop Blank_PCR, Semen.sterile, Skin and Skin.penile
+    augmented_data = augmented_data.drop(['Blank_PCR', 'Semen.sterile', 'Skin', 'Skin.penile'], axis=1)
+
+    # save
     augmented_data.to_csv("data/augmented_mixtures.csv", index=False)
 
 if __name__ == "__main__":
@@ -32,5 +42,5 @@ if __name__ == "__main__":
     data = pd.read_csv("data/preproc_individuals.csv")
 
     # augment away!
-    augmented_data = augment(data, num_aug_samples=20_000, max_num_fluids=2)
+    augmented_data = augment(data, num_aug_samples=10_000, max_num_fluids=2)
     
