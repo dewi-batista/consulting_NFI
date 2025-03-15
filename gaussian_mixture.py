@@ -76,7 +76,7 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
     if do_model_selection == False:
         model = GaussianMixture(n_components=n_components, covariance_type=covariance_type, 
                                 n_init=3, random_state=0).fit(X) 
-        print(f"Number of components: {n_components}")
+        # print(f"Number of components: {n_components}")
     else:
         max_components = 10
         BIC_list = np.zeros(max_components)
@@ -91,13 +91,13 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
         best_no_comp = np.argmin(BIC_list) + 1
         model = GaussianMixture(n_components=best_no_comp, covariance_type=covariance_type, 
                                 n_init=3, random_state=0).fit(X)
-        print(f"Number of components: {best_no_comp}") 
+        # print(f"Number of components: {best_no_comp}") 
 
-    print(f"Convergence status: {model.converged_}")
+    # print(f"Convergence status: {model.converged_}")
 
-    print(f"Weights: {model.weights_}")
-    print(f"Means: {model.means_}")
-    print(f"Covariances: {model.covariances_}")
+    # print(f"Weights: {model.weights_}")
+    # print(f"Means: {model.means_}")
+    # print(f"Covariances: {model.covariances_}")
 
     # - Plot the fitted curve:
     if plot_ == True:
@@ -199,29 +199,31 @@ if __name__ == "__main__":
 
     # --- Test data generation
     
-    idx_marker = 0
+    idx_marker = 7
     idx_sample = 0
     
     # - Get data
 
     # Extract true data
-    data = pd.read_csv('data/individuals.csv').fillna(0)
+    data = pd.read_csv('data/mixtures.csv').fillna(0)
 
     markers = data.columns[1:-5]
-    samples = data.iloc[:, 0].unique()
+    fluid_combinations = data.iloc[:, 0].unique()
 
-    data_sample = data[data.iloc[:, 0] == samples[idx_sample]]
-    data_sample, test_data_sample = train_test_split(data_sample, test_size=0.2)#, random_state=42)
+    data_sample = data[data.iloc[:, 0] == fluid_combinations[idx_sample]]
+    data_sample, test_data_sample = train_test_split(data_sample, test_size=0.2, random_state=42)
+    # print(data_sample)
 
     true_data = data_sample.loc[:, [markers[idx_marker]]]
     test_true_data = test_data_sample.loc[:, [markers[idx_marker]]]
-
-    print(true_data.shape, test_true_data.shape)
+    # print(true_data.shape, test_true_data.shape)
+    print(true_data)
 
     # Create new data
     model = gauss_mixture_fit("individuals", 0, 0, do_model_selection=True, covariance_type="diag", plot_=False)
     new_data = data_generator(10**2, model, threshold=150)
-    print(new_data.shape)
+    # print(new_data.shape)
+    # print(true_data)
     # - Test equality of distributions
 
     result = ks_2samp(test_true_data.to_numpy().flatten(), new_data)
@@ -246,16 +248,17 @@ if __name__ == "__main__":
     plt.figure(figsize=(6,4))
 
     plt.hist(new_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
-    plt.hist(test_true_data, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
+    plt.hist(test_true_data, bins=50, label="Test Data", density=True, color="blue", alpha=0.5)
+    plt.hist(true_data, bins=50, label="Train Data", density=True, color="green", alpha=0.5)
     
     plt.plot(x_val, y_all, color="black", label="Sum Contrib")
 
     for i in range(len(model.weights_)):
         plt.plot(x_val, y_val[i, :], label=f"Component {i+1}")
 
-    plt.title(f'{samples[idx_sample]} - {markers[idx_marker]}\nTrue data and generated data')
+    plt.title(f'{fluid_combinations[idx_sample]} - {markers[idx_marker]}\nTrue data and generated data')
     plt.xlabel('Value')
     plt.ylabel('Freq.')
     plt.legend()
-    # plt.show()
+    plt.show()
     
