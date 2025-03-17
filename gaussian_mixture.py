@@ -6,6 +6,7 @@ import numpy as np
 # For stats things
 from scipy.stats import multivariate_normal, ks_2samp
 from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import train_test_split
 
 # Python quality of life
 from pdb import set_trace
@@ -14,7 +15,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def gauss_mixture_fit(data_set, idx_marker, idx_sample, 
                        n_components=1, covariance_type="diag",
-                       plot_=True, do_model_selection=False):
+                       split_proportion = 1,
+                       plot_=True, do_model_selection=False, return_BIC = False):
     """
     This function fits a mixture of Gaussians. If enabled, it will plot the histogram overlapped
     with the fitted distribution, as well as perform model selection for the optimal number of components.
@@ -37,27 +39,28 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
     'Saliva+Vaginal.mucosa' 'Blood+Nasal.mucosa' 'Nasal.mucosa+Saliva'
     'Vaginal.mucosa+Blood' 'Menstrual.secretion+Blood']
 
+    split_proportion = float in the range (0, 1]. It describes the proportion of the samples to be alocated
+    to the training of the Gaussian mixture
+
     n_components = integer. The number of components to be used for the Gaussian mixture, set by the user.
     Relevant only if 'do_model_selection' is set to False
 
     covariance_type = string. Choose between ["diag", "full", "spherical", "tied"]. It gives the 
     type of matrix to be used in the mixture definitions. 
 
-    plot_ = boolean. If true, it also plots a histogram of the relevant data together with the best mixture fit
+    plot_ = boolean. If true, it also plots a histogram of the relevant data together with the best mixture fit based on the
+    training data 
 
     do_model_selection = boolean. If true, it performs model selection to find the best number of mixture components.
     **Note**: it uses BIC, which is the stricter criterion. It also has a maximum mixture number of 10. If those need to 
     be updated, this is an avenue of improvement
 
+    return_BIC = boolean. If true, it returns the BIC for the best model computed on the training data
 
     --- Output:
 
     model = model class of Gaussian Mixtures. It returns the model with the best number of components (user specified or via BIC)
-
-    --- TBD: 
-
-    Implement data generation
-    Test via the KS test the adequacy of the fit
+    (Optional) best_BIC = float. The BIC for the best model, on the training data
     """
     
     # - Load data
@@ -71,10 +74,11 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
 
     data_sample = data[data.iloc[:, 0] == samples[idx_sample]]
     X = data_sample.loc[:, [markers[idx_marker]]]
+    X_train, _ = train_test_split(X, train_size=split_proportion, random_state=42, shuffle=True)
 
     if do_model_selection == False:
         model = GaussianMixture(n_components=n_components, covariance_type=covariance_type, 
-                                n_init=3, random_state=0).fit(X) 
+                                n_init=3, random_state=0).fit(X_train) 
         print(f"Number of components: {n_components}")
     else:
         max_components = 10
@@ -82,14 +86,14 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
 
         for i in range(1, max_components + 1):
             model_temp = GaussianMixture(n_components=i, covariance_type=covariance_type, 
-                                n_init=3, random_state=0).fit(X) 
-            BIC_list[i-1] = model_temp.bic(X)
+                                n_init=3, random_state=0).fit(X_train) 
+            BIC_list[i-1] = model_temp.bic(X_train)
 
         # Select the model with the smallest BIC
 
         best_no_comp = np.argmin(BIC_list) + 1
         model = GaussianMixture(n_components=best_no_comp, covariance_type=covariance_type, 
-                                n_init=3, random_state=0).fit(X)
+                                n_init=3, random_state=0).fit(X_train)
         print(f"Number of components: {best_no_comp}") 
 
     print(f"Convergence status: {model.converged_}")
@@ -120,7 +124,6 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
             else:
                 covar_ = np.diag(model.covariances_[i])
                 
-
             y_val[i, :] = weight_ * multivariate_normal.pdf(x_val, mean=mean_, cov=covar_)
             y_all = y_all + y_val[i, :]
 
@@ -139,7 +142,10 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
         plt.legend()
         plt.show()
     
-    return model
+    if return_BIC == False:
+        return model
+    else:
+        return model, BIC_list[best_no_comp - 1]
 
 def data_generator(n, model, covariance_type="diag", threshold=150, seed=42):
     """
@@ -183,72 +189,149 @@ def data_generator(n, model, covariance_type="diag", threshold=150, seed=42):
 
     return new_samples
 
-if __name__ == "__main__":
-    # --- Test mixture fitting:
-
-    # - Blood (0), HBB (0)
-    #gauss_mixture_fit("individuals", 0, 0, n_components=3, covariance_type="diag") 
-    #gauss_mixture_fit("individuals", 0, 0, do_model_selection=True, covariance_type="diag")
-
-    # - Saliva (1), STATH (4)
-    #gauss_mixture_fit("individuals", 4, 1, do_model_selection=True, covariance_type="diag")
+def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0.66,
+                n_components=1, covariance_type="diag", do_model_selection=False,
+                threshold=150, seed=42, plot_fit = False, plot_data = False): 
+    """
+    This function tests the adequacy of the generated data against the true data in few different ways.
     
-    # - Semen.fertile+Vaginal.mucosa (0), MUC4 (6)
-    #gauss_mixture_fit("mixtures", 0, 6, do_model_selection=True, covariance_type="diag")
+    Firstly, it outputs the BIC of the best fit on the training data, which is useful to compare with other 
+    distribution families (e.g. Gamma mixtures). 
 
-    # --- Test data generation
-    
-    idx_marker = 0
-    idx_sample = 0
-    
-    # - Get data
+    Secondly, it performs the two-sample KS test between the true test data and generated data sets of the same
+    size as the test data (the KS test works better between samples of comparable size). This is done repeatedly 
+    for multiple seeds, to obtain a distribution of p-values against different generation mechanisms.
 
-    # Extract true data
-    data = pd.read_csv('data/individuals.csv').fillna(0)
+    Lastly, it plots the histogram of the entire data overlapped with the best fit from the training data. 
+    It helps with the visual comparison.
+
+    --- Inputs:
+
+    data_set = string. If it equals "individuals", then it uses the data set from individual fluids.
+    Otherwise it uses the mixtures
+
+    idx_marker = integer. The index of the relevant marker in the list of markers from the data
+    The list: [HBB,ALAS2,CD93,HTN3,STATH,BPIFA1,MUC4,MYOZ1,CYP2B7P1,MMP10,MMP7,MMP11,SEMG1,KLK3,PRM1]
+
+    idx_sample = integer. The index of the relevant fluid type in the list of fluids. The list:
+    - individuals: ['Blood' 'Saliva' 'Vaginal.mucosa' 'Menstrual.secretion' 'Semen.fertile'
+    'Semen.sterile' 'Nasal.mucosa' 'Blank_PCR' 'Skin' 'Skin.penile']
+    - mixtures: ['Semen.fertile+Vaginal.mucosa' 'Saliva+Semen.fertile'
+    'Saliva+Vaginal.mucosa' 'Blood+Nasal.mucosa' 'Nasal.mucosa+Saliva'
+    'Vaginal.mucosa+Blood' 'Menstrual.secretion+Blood']
+
+    n_reps = integer. The number iterations artificial samples are generated and compared to the true data
+
+    split_proportion = float in the range (0, 1]. It describes the proportion of the samples to be alocated
+    to the training of the Gaussian mixture
+
+    n_components = integer. The number of components to be used for the Gaussian mixture, set by the user.
+    Relevant only if 'do_model_selection' is set to False.
+
+    covariance_type = string. Choose between ["diag", "full", "spherical", "tied"]. It gives the 
+    type of matrix to be used in the mixture definitions. 
+
+    do_model_selection = boolean. If true, it performs model selection to find the best number of mixture components.
+    **Note**: it uses BIC, which is the stricter criterion. It also has a maximum mixture number of 10. If those need to 
+    be updated, this is an avenue of improvement
+
+    plot_fit = boolean. If true, it also plots a histogram of the relevant data together with the best mixture fit
+    based on only the training data
+
+    plot_data = boolean. If true, it plots a histogram like the one in plot_fit, but with the generated data added as
+    well. The data is generated based on the seed 'seed'
+
+    threshold = float. The threshold set for the data generation. If a value is below the threshold, it is 
+    assigned zero
+
+    --- Outputs:
+    """
+    
+    # --- Train the model on the training data
+    model, best_BIC = gauss_mixture_fit(data_set, idx_marker, idx_sample, split_proportion=split_proportion, 
+                              n_components=n_components, covariance_type=covariance_type, plot_=plot_fit, 
+                              do_model_selection=do_model_selection, return_BIC=True)
+    
+    print(f"The BIC of the best model on training data: {best_BIC}")
+
+    # --- Do the KS test for multiple seeds
+
+    # Split the data just like gauss_mixture_fit()
+
+    if data_set == "individuals":
+        data = pd.read_csv('data/individuals.csv').fillna(0)
+    else:
+        data = pd.read_csv('data/mixtures.csv').fillna(0)
 
     markers = data.columns[1:-5]
     samples = data.iloc[:, 0].unique()
-
     data_sample = data[data.iloc[:, 0] == samples[idx_sample]]
-    true_data = data_sample.loc[:, [markers[idx_marker]]]
+    X = data_sample.loc[:, [markers[idx_marker]]]
+    _, X_test = train_test_split(X, train_size=split_proportion, 
+                                       random_state=42, shuffle=True)
 
-    # Create new data
-    model = gauss_mixture_fit("individuals", 0, 0, do_model_selection=True, covariance_type="diag", plot_=False)
-    new_data = data_generator(10**2, model, threshold=150)
+    # Generate repeated artificial data sets. Record the p-values
 
-    # - Test equality of distributions
+    p_val_list = np.zeros(n_reps)
+    seeds = np.random.randint(1, 3 * n_reps, n_reps)
 
-    result = ks_2samp(true_data.to_numpy().flatten(), new_data)
-    print(f"p-value for two-sided KS test: {result.pvalue}")
+    for i in range(n_reps):
+        temp_artif_data = data_generator(X_test.size, model, threshold=threshold, seed=seeds[i])
+        OUT = ks_2samp(X_test.to_numpy().flatten(), temp_artif_data)
+        p_val_list[i] = OUT.pvalue
 
-    # - Plot the result 
+    print(f"The minimum p-value: {p_val_list.min()}")
+    print(f"The median p-value: {np.median(p_val_list)}")
 
-    # Create the mixture curves
-    x_val = np.arange(data_sample[markers[idx_marker]].min(), data_sample[markers[idx_marker]].max(), 1) 
-    y_val = np.zeros((len(model.weights_), x_val.shape[0]))
-    y_all = np.zeros(x_val.shape)
-
-    # Compute each individual contribution:
-    for i in range(len(model.weights_)):
-        weight_ = model.weights_[i]
-        mean_ = model.means_[i]
-        covar_ = np.diag(model.covariances_[i])
-
-        y_val[i, :] = weight_ * multivariate_normal.pdf(x_val, mean=mean_, cov=covar_)
-        y_all = y_all + y_val[i, :]
-
-    plt.figure(figsize=(6,4))
-
-    plt.hist(new_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
-    plt.hist(true_data, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
+    # --- Plot the data against the fit
     
-    plt.plot(x_val, y_all, color="black", label="Sum Contrib")
+    if plot_data == True:
+        artificial_data = data_generator(X_test.size, model, threshold=threshold, seed=seed)
+        
+        # Create the mixture curves
+        x_val = np.arange(X.to_numpy().min(), X.to_numpy().max(), 1) 
+        y_val = np.zeros((len(model.weights_), x_val.shape[0]))
+        y_all = np.zeros(x_val.shape)
 
-    for i in range(len(model.weights_)):
-        plt.plot(x_val, y_val[i, :], label=f"Component {i+1}")
+        # Compute each individual contribution:
+        for i in range(len(model.weights_)):
+            weight_ = model.weights_[i]
+            mean_ = model.means_[i]
+            covar_ = np.diag(model.covariances_[i])
 
-    plt.title(f'{samples[idx_sample]} - {markers[idx_marker]}\nTrue data and generated data')
-    plt.xlabel('Value')
-    plt.ylabel('Freq.')
-    plt.legend()
-    plt.show()
+            y_val[i, :] = weight_ * multivariate_normal.pdf(x_val, mean=mean_, cov=covar_)
+            y_all = y_all + y_val[i, :]
+
+        # The actual figure
+        plt.figure(figsize=(6,4))
+
+        plt.hist(artificial_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
+        plt.hist(X, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
+        
+        plt.plot(x_val, y_all, color="black", label="Sum Contrib")
+
+        for i in range(len(model.weights_)):
+            plt.plot(x_val, y_val[i, :], label=f"Component {i+1}")
+
+        plt.title(f'{samples[idx_sample]} - {markers[idx_marker]}\nTrue data and generated data')
+        plt.xlabel('Value')
+        plt.ylabel('Freq.')
+        plt.legend()
+        plt.show()
+
+if __name__ == "__main__":
+    # --- Test data generation
+
+    fit_evaluator("mixtures", 6, 0, 100, do_model_selection=True, seed=42, plot_data=True, plot_fit=True)
+
+    # --- Interesting plots to show Pieter-Wim
+
+    # - Mixtures:
+
+    # Semen feritle & Vaginal mucosa (0): MUC4, MYOZ1, CYP2B7P1 (mixtures do badly), SEMG1 (bad mixtures), KLK3 (bad mixtures), PRM1
+    # Semen fertile & Saliva (1):  
+    # Saliva & vagina mucosa (2):
+    # Blood & nasal mucosa (3):
+    # Nasal.mucosa+Saliva (4):
+    # Vaginal.mucosa+Blood (5):
+    # Menstrual.secretion+Bloo (6):
