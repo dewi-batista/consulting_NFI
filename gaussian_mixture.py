@@ -16,7 +16,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def gauss_mixture_fit(data_set, idx_marker, idx_sample, 
                        n_components=1, covariance_type="diag",
                        split_proportion = 1,
-                       plot_=True, do_model_selection=False, return_BIC = False):
+                       plot_=True, do_model_selection=False, return_BIC = False, 
+                       verbose = 2):
     """
     This function fits a mixture of Gaussians. If enabled, it will plot the histogram overlapped
     with the fitted distribution, as well as perform model selection for the optimal number of components.
@@ -39,7 +40,7 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
     'Saliva+Vaginal.mucosa' 'Blood+Nasal.mucosa' 'Nasal.mucosa+Saliva'
     'Vaginal.mucosa+Blood' 'Menstrual.secretion+Blood']
 
-    split_proportion = float in the range (0, 1]. It describes the proportion of the samples to be alocated
+    split_proportion = float in the range (0, 1). It describes the proportion of the samples to be alocated
     to the training of the Gaussian mixture
 
     n_components = integer. The number of components to be used for the Gaussian mixture, set by the user.
@@ -56,6 +57,8 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
     be updated, this is an avenue of improvement
 
     return_BIC = boolean. If true, it returns the BIC for the best model computed on the training data
+
+    verbose = 0, 1 or 2. If 2, the function prints everything. If 1, it prints only the convergence status. If 0, it prints nothing
 
     --- Output:
 
@@ -79,7 +82,8 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
     if do_model_selection == False:
         model = GaussianMixture(n_components=n_components, covariance_type=covariance_type, 
                                 n_init=3, random_state=0).fit(X_train) 
-        print(f"Number of components: {n_components}")
+        if verbose == 2:
+            print(f"Number of components: {n_components}")
     else:
         max_components = 10
         BIC_list = np.zeros(max_components)
@@ -94,13 +98,16 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
         best_no_comp = np.argmin(BIC_list) + 1
         model = GaussianMixture(n_components=best_no_comp, covariance_type=covariance_type, 
                                 n_init=3, random_state=0).fit(X_train)
-        print(f"Number of components: {best_no_comp}") 
+        if verbose == 2:
+            print(f"Number of components: {best_no_comp}") 
 
-    print(f"Convergence status: {model.converged_}")
+    if verbose == 1 or verbose == 2:
+        print(f"Convergence status: {model.converged_}")
 
-    print(f"Weights: {model.weights_}")
-    print(f"Means: {model.means_}")
-    print(f"Covariances: {model.covariances_}")
+        if verbose == 2:
+            print(f"Weights: {model.weights_}")
+            print(f"Means: {model.means_}")
+            print(f"Covariances: {model.covariances_}")
 
     # - Plot the fitted curve:
     if plot_ == True:
@@ -222,7 +229,7 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
 
     n_reps = integer. The number iterations artificial samples are generated and compared to the true data
 
-    split_proportion = float in the range (0, 1]. It describes the proportion of the samples to be alocated
+    split_proportion = float in the range (0, 1). It describes the proportion of the samples to be alocated
     to the training of the Gaussian mixture
 
     n_components = integer. The number of components to be used for the Gaussian mixture, set by the user.
@@ -236,10 +243,10 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
     be updated, this is an avenue of improvement
 
     plot_fit = boolean. If true, it also plots a histogram of the relevant data together with the best mixture fit
-    based on only the training data
+    based on only the full data
 
     plot_data = boolean. If true, it plots a histogram like the one in plot_fit, but with the generated data added as
-    well. The data is generated based on the seed 'seed'
+    well. Furthermore, only training data is used for those mixtures. The data is generated based on the seed 'seed'
 
     threshold = float. The threshold set for the data generation. If a value is below the threshold, it is 
     assigned zero
@@ -249,8 +256,8 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
     
     # --- Train the model on the training data
     model, best_BIC = gauss_mixture_fit(data_set, idx_marker, idx_sample, split_proportion=split_proportion, 
-                              n_components=n_components, covariance_type=covariance_type, plot_=plot_fit, 
-                              do_model_selection=do_model_selection, return_BIC=True)
+                              n_components=n_components, covariance_type=covariance_type, plot_=False, 
+                              do_model_selection=do_model_selection, return_BIC=True, verbose=1)
     
     print(f"The BIC of the best model on training data: {best_BIC}")
 
@@ -285,6 +292,11 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
 
     # --- Plot the data against the fit
     
+    if plot_fit == True:
+        _ = gauss_mixture_fit(data_set, idx_marker, idx_sample, split_proportion=0.999, 
+                              n_components=n_components, covariance_type=covariance_type, plot_=True, 
+                              do_model_selection=do_model_selection, return_BIC=False, verbose=1)
+
     if plot_data == True:
         artificial_data = data_generator(X_test.size, model, threshold=threshold, seed=seed)
         
@@ -322,16 +334,6 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
 if __name__ == "__main__":
     # --- Test data generation
 
-    fit_evaluator("mixtures", 6, 0, 100, do_model_selection=True, seed=42, plot_data=True, plot_fit=True)
+    fit_evaluator("mixtures", 0, 0, 100, do_model_selection=True, seed=42, plot_data=True, plot_fit=True)
 
-    # --- Interesting plots to show Pieter-Wim
-
-    # - Mixtures:
-
-    # Semen feritle & Vaginal mucosa (0): MUC4, MYOZ1, CYP2B7P1 (mixtures do badly), SEMG1 (bad mixtures), KLK3 (bad mixtures), PRM1
-    # Semen fertile & Saliva (1):  
-    # Saliva & vagina mucosa (2):
-    # Blood & nasal mucosa (3):
-    # Nasal.mucosa+Saliva (4):
-    # Vaginal.mucosa+Blood (5):
-    # Menstrual.secretion+Bloo (6):
+    
