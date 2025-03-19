@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def gauss_mixture_fit(data_set, idx_marker, idx_sample, 
                        n_components=1, covariance_type="diag",
-                       split_proportion = 1,
+                       split_proportion = 0.999,
                        plot_=True, do_model_selection=False, return_BIC = False, 
                        verbose = 2):
     """
@@ -137,7 +137,7 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
 
         plt.figure(figsize=(6,4))
 
-        plt.hist(data_sample[markers[idx_marker]], bins=30, label="True Data", density=True)
+        hist_vals, _, _ = plt.hist(data_sample[markers[idx_marker]], bins=30, label="True Data", density=True)
         plt.plot(x_val, y_all, color="blue", label="Sum Contrib")
 
         for i in range(len(model.weights_)):
@@ -146,6 +146,7 @@ def gauss_mixture_fit(data_set, idx_marker, idx_sample,
         plt.title(f'{samples[idx_sample]} - {markers[idx_marker]}\nTrue data and fit')
         plt.xlabel('Value')
         plt.ylabel('Freq.')
+        plt.ylim(0, 1.3 * hist_vals.max())
         plt.legend()
         plt.show()
     
@@ -171,7 +172,7 @@ def data_generator(n, model, covariance_type="diag", threshold=150, seed=42):
 
     # Sample mixture components to take from 
     temp2 = np.random.choice(range(len(weights)), size=n, p=weights)
-    mixture_number = np.bincount(temp2) 
+    mixture_number = np.bincount(temp2, minlength=len(weights)) 
 
     # Sample values from mixtures
     for i in range(len(weights)):
@@ -287,8 +288,8 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
         OUT = ks_2samp(X_test.to_numpy().flatten(), temp_artif_data)
         p_val_list[i] = OUT.pvalue
 
-    print(f"The minimum p-value: {p_val_list.min()}")
-    print(f"The median p-value: {np.median(p_val_list)}")
+    print(f"The minimum p-value: {np.round(p_val_list.min(), 3)}")
+    print(f"The median p-value: {np.round(np.median(p_val_list), 3)}")
 
     # --- Plot the data against the fit
     
@@ -317,9 +318,10 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
         # The actual figure
         plt.figure(figsize=(6,4))
 
-        plt.hist(artificial_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
-        plt.hist(X, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
-        
+        hist_vals1, _, _ = plt.hist(artificial_data, bins=100, label="Generated Data", density=True, color="red", alpha=0.5)
+        hist_vals2, _, _, = plt.hist(X, bins=50, label="True Data", density=True, color="blue", alpha=0.5)
+        hist_max = max(hist_vals1.max(), hist_vals2.max())
+
         plt.plot(x_val, y_all, color="black", label="Sum Contrib")
 
         for i in range(len(model.weights_)):
@@ -328,12 +330,12 @@ def fit_evaluator(data_set, idx_marker, idx_sample, n_reps, split_proportion = 0
         plt.title(f'{samples[idx_sample]} - {markers[idx_marker]}\nTrue data and generated data')
         plt.xlabel('Value')
         plt.ylabel('Freq.')
+        plt.ylim(0, 1.3 * hist_max)
         plt.legend()
         plt.show()
 
 if __name__ == "__main__":
-    # --- Test data generation
+    # --- Check each fluid-marker pair
 
-    fit_evaluator("mixtures", 0, 0, 100, do_model_selection=True, seed=42, plot_data=True, plot_fit=True)
-
+    fit_evaluator("mixtures", 0, 6, 100, do_model_selection=True, seed=42, plot_data=True, plot_fit=True)
     
