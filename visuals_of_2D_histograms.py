@@ -20,7 +20,7 @@ marker_start_index = list(data.columns).index("HBB")
 markers = data.columns[marker_start_index:]
 for col in markers:
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))  # Adjusted to 1 by 3
-    fig.suptitle(f'Distributions of {col} conditioned on fluid combinations', fontsize=16, fontweight='bold')
+    # fig.suptitle(f'Distributions of {col} conditioned on fluid combinations', fontsize=16, fontweight='bold')
     
     for i, (fluid_1, fluid_2) in enumerate(fluid_combinations):
         ax = axes[i]  # Since it's a 1D array now
@@ -29,7 +29,7 @@ for col in markers:
         ax.set_title(f'{fluid_1} & {fluid_2}', fontweight='bold')
         ax.set_xlabel('Value')
         ax.set_ylabel('Freq.')
-    
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout()
+    # plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(f"figures/2D_hists/distributions_of_{col}.pdf")
 

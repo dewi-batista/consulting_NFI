@@ -8,11 +8,11 @@ data = pd.read_csv('data/preproc_mixtures.csv')
 # all six fluid combinations present in mixtures.csv
 fluid_combinations = [
     ('Semen.fertile', 'Vaginal.mucosa'),
-    ('Saliva', 'Vaginal.mucosa'),
-    ('Blood', 'Nasal.mucosa'),
-    ('Nasal.mucosa', 'Saliva'),
-    ('Blood', 'Vaginal.mucosa'),
-    ('Blood', 'Menstrual.secretion')
+    # ('Saliva', 'Vaginal.mucosa'),
+    # ('Blood', 'Nasal.mucosa'),
+    # ('Nasal.mucosa', 'Saliva'),
+    # ('Blood', 'Vaginal.mucosa'),
+    # ('Blood', 'Menstrual.secretion')
 ]
 
 # set starting index of markers in csv
@@ -44,8 +44,9 @@ def greatest_correlates(corr_threshold, max_num_correlates):
         # plot that correlation matrix boiiii
         plt.figure(figsize=(10, 8))
         sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-        plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
-        plt.show()
+        # plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
+        plt.tight_layout()
+        plt.savefig('figures/corr_matrix_semen.fertile_and_vaginal.mucosa.pdf')
 
 # greedy clustering algorithm
 def get_clusters(corr_threshold):
@@ -75,13 +76,7 @@ def get_clusters(corr_threshold):
 
     return clusters_dict
 
-# plot that correlation matrix boiiii
-def plot_corr_mat(corr, fluid_1, fluid_2):
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(corr, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
-    plt.title(f"Correlation matrix of markers for {fluid_1} and {fluid_2}")
-    plt.show()
-
 if __name__ == "__main__":
     corr_threshold = 0.2
     print(get_clusters(corr_threshold))
+    greatest_correlates(corr_threshold, max_num_correlates=3)
