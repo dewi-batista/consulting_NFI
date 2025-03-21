@@ -88,16 +88,45 @@ gamma_mixtures = function(id_mixture,id_marker,max_components){
   legend("topright",xpd = TRUE, inset = c(-0.2, 0),bg = rgb(1, 1, 1, 0), legend=c("True Data","Generated Data","Gamma Mixture function"),
          col=c(rgb(1,0,0,0.5),rgb(0,0,1,0.5),"green"), pt.cex=2, pch=15)
   
-  
-  ks_test_new_data = ks.test(new_data,mixture_marker_vector_test)
-  return(c(ks_test_new_data$p.value,best_BIC))
+  return(best_BIC)
   
 }
 
-for(i in 12:15){
-  result = gamma_mixtures(2,i,5)
-  print(result)
+
+
+p_value_statistics = function(id_mixture,id_marker,n_components){
+  
+  p_values_vector = integer(100)
+  
+  mixture_marker_vector = data_mixtures[data_mixtures$X==mixture_names[id_mixture],][markers_names[id_marker]]
+  # remove NA
+  mixture_marker_vector = na.omit(mixture_marker_vector,as.numeric)
+  # transform above dataframe to numeric 
+  mixture_marker_vector = sapply(mixture_marker_vector,as.numeric)
+  
+  splitTrainTest = sample(c(TRUE, FALSE), length(mixture_marker_vector), replace=TRUE, prob=c(0.7,0.3))
+  mixture_marker_vector_train = mixture_marker_vector[splitTrainTest]
+  mixture_marker_vector_test = mixture_marker_vector[!splitTrainTest]
+  gamma_mixtures_results = gammamixEM(mixture_marker_vector_train,verb = FALSE,maxit=1e6,k=n_components,epsilon = 1e-08)
+  
+  best_alpha = gamma_mixtures_results$gamma.pars[1,]
+  best_beta = gamma_mixtures_results$gamma.pars[2,]
+  best_lambda = gamma_mixtures_results$lambda
+  
+  
+  
+  for(i in 1:100){
+    
+    new_data = rmgamma(length(mixture_marker_vector_test), mgshape = best_alpha, mgscale = best_beta,mgweight = best_lambda)
+    ks_test_new_data = ks.test(new_data,mixture_marker_vector_test)
+    p_values_vector[i] = ks_test_new_data$p.value
+  }
+  
+  
+  return(c(median(p_values_vector),min(p_values_vector)))
+  
 }
+
 
 
 # NULL: If it does not converge
